@@ -1,0 +1,116 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [ main, staging ]
+  pull_request:
+    branches: [ main, staging ]
+
+env:
+  AWS_REGION: us-west-2
+  TERRAFORM_VERSION: 1.5.0
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: ${{ github.ref == 'refs/heads/main' && secrets.AWS_ROLE_ARN_PROD || secrets.AWS_ROLE_ARN_STAGING }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive
+      working-directory: environments/${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+
+    - name: Terraform Init
+      id: init
+      run: terraform init
+      working-directory: environments/${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+
+    - name: Terraform Validate
+      id: validate
+      run: terraform validate
+      working-directory: environments/${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+
+    - name: Terraform Plan
+      id: plan
+      if: github.event_name == 'pull_request'
+      run: |
+        terraform plan \
+          -var-file=${{ github.ref == 'refs/heads/main' && 'prod.tfvars' || 'staging.tfvars' }} \
+          -no-color \
+          -input=false
+      working-directory: environments/${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      continue-on-error: true
+
+    - name: Update Pull Request
+      uses: actions/github-script@v6
+      if: github.event_name == 'pull_request'
+      env:
+        PLAN: "${{ steps.plan.outputs.stdout }}"
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+          #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+          #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+          #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+
+          <details><summary>Show Plan</summary>
+
+          \`\`\`\n
+          ${process.env.PLAN}
+          \`\`\`
+
+          </details>`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
+
+    - name: Terraform Plan Status
+      if: steps.plan.outcome == 'failure'
+      run: exit 1
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+      run: |
+        terraform apply \
+          -var-file=${{ github.ref == 'refs/heads/main' && 'prod.tfvars' || 'staging.tfvars' }} \
+          -auto-approve \
+          -input=false
+      working-directory: environments/${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+
+  notify:
+    needs: [terraform]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
