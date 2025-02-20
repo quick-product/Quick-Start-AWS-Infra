@@ -100,23 +100,21 @@ Each environment contains:
 
 ## **📁 Repository Structure**
 ```
-.
-├── environments/
-│   ├── staging/
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── staging.tfvars
-│   └── production/
-│       ├── main.tf
-│       ├── variables.tf
-│       └── prod.tfvars
-├── modules/
-│   ├── networking/
-│   ├── database/
-│   ├── ecs/
-│   └── security/
+quick-prod-aws-infra/
 ├── .github/
 │   └── workflows/
+│       └── deploy.yml
+├── terraform/
+│   ├── main.tf         
+│   ├── variables.tf    
+│   ├── terraform.tfvars
+│   └── modules/
+│       ├── networking/
+│       ├── security/
+│       ├── database/
+│       └── ecs/
+├── docs/
+│   └── workflow-setup.md
 └── README.md
 ```
 
