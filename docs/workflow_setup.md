@@ -27,19 +27,23 @@ The workflow automatically manages infrastructure deployments:
    .
    ├── .github/
    │   └── workflows/
-   │       └── deploy-infrastructure.yml
+   │       └── deploy-infrastructure.yml.template
    ├── terraform/
    │   ├── main.tf
    │   ├── variables.tf
+   │   ├── terraform.tfvars.sample  # Example configuration file
    │   └── modules/
    │       ├── networking/
    │       ├── database/
    │       └── ecs/
    └── docs/
-       └── workflow-setup.md
+      └── workflow-setup.md
    ```
 
 ## Workflow Features
+
+> 💡
+> Refer to the terraform.tfvars.sample for configuration examples.
 
 1. **Safe Deployments**:
    - Runs `terraform fmt` check

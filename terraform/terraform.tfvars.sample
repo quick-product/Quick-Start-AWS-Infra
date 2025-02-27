@@ -1,0 +1,34 @@
+################################################
+# Example terraform.tfvars for local usage
+# Terraform Cloud can override these
+################################################
+
+environment    = "staging-test"
+aws_region     = "eu-central-1"
+
+# VPC CIDR
+vpc_cidr       = "10.0.0.0/16"
+
+# Subnets
+public_subnets     = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnets    = ["10.0.10.0/24", "10.0.11.0/24"]
+availability_zones = ["eu-central-1a", "eu-central-1b"]
+
+# ECS / ALB
+app_port          = 8080
+health_check_path = "/health"
+app_count         = 1
+
+
+# Database
+database_name         = "appdb_staging"
+database_username     = "dbadmin"
+# Avoid committing real secrets to git
+# you should set this password as a secret in Terraform Cloud
+database_password     = "some-SUPER-secret"  
+db_instance_class     = "db.t3.micro"
+db_allocated_storage  = 20
+db_engine_version     = "16.3"
+
+# ECS AMI for eu-central-1 (Amazon Linux 2 ECS-Optimized)
+ecs_ami_id = "ami-0042a357d3b225e32" 
