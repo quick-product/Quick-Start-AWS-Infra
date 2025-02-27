@@ -27,20 +27,16 @@ The workflow automatically manages infrastructure deployments:
    .
    ├── .github/
    │   └── workflows/
-   │       └── deploy.yml
-   ├── environments/
-   │   ├── staging/
-   │   │   ├── main.tf
-   │   │   ├── variables.tf
-   │   │   └── staging.tfvars
-   │   └── production/
-   │       ├── main.tf
-   │       ├── variables.tf
-   │       └── prod.tfvars
-   └── modules/
-       ├── networking/
-       ├── database/
-       └── ecs/
+   │       └── deploy-infrastructure.yml
+   ├── terraform/
+   │   ├── main.tf
+   │   ├── variables.tf
+   │   └── modules/
+   │       ├── networking/
+   │       ├── database/
+   │       └── ecs/
+   └── docs/
+       └── workflow-setup.md
    ```
 
 ## Workflow Features
@@ -53,11 +49,11 @@ The workflow automatically manages infrastructure deployments:
 
 2. **Environment Separation**:
    - Different AWS roles per environment
-   - Separate state files
-   - Environment-specific variables
+   - Separate state files via Terraform workspaces
+   - Environment-specific variables managed via Terraform Cloud or custom .tfvars files
 
 3. **Security**:
-   - Uses OIDC for AWS authentication
+   - Uses OIDC for AWS authentication (no long-lived credentials)
    - Minimal required permissions
    - Protected branches recommended for `main` and `staging`
 
@@ -95,6 +91,25 @@ The workflow automatically manages infrastructure deployments:
    }
    ```
 
+## Activating the Workflow Template
+
+1. Copy the template file to the workflows directory:
+   ```bash
+   mkdir -p .github/workflows
+   cp deploy-infrastructure.yml.template .github/workflows/deploy-infrastructure.yml
+   ```
+
+2. Uncomment all lines in the file
+
+3. Update the following values:
+   - AWS_REGION: Your target AWS region
+   - TERRAFORM_VERSION: Preferred Terraform version
+   - Add any additional environment-specific settings
+
+4. Configure GitHub repository secrets:
+   - Go to Settings > Secrets and variables > Actions
+   - Add AWS_ROLE_ARN_PROD and AWS_ROLE_ARN_STAGING secrets
+
 ## Usage
 
 1. **For Infrastructure Changes**:
@@ -123,7 +138,7 @@ The workflow automatically manages infrastructure deployments:
 
 2. **State Management**:
    - Use remote state (S3 + DynamoDB)
-   - Separate state files per environment
+   - Use Terraform workspaces for environment separation
    - Enable state locking
 
 3. **Security**:
